@@ -528,6 +528,7 @@ band_songs(
     PRIMARY KEY (band_id, song_id)
 )
 
+
 setlists(
     id,                      -- Primary Key
     name,
@@ -539,6 +540,7 @@ setlists(
     updated_at
 )
 
+
 setlist_songs(
     id,         -- Primary Key
     setlist_id, -- Foreign Key -> setlists(id)
@@ -547,6 +549,7 @@ setlist_songs(
     UNIQUE (setlist_id, position),
     UNIQUE (setlist_id, song_id)
 )
+
 
 rehearsals(
     id,         -- Primary Key
@@ -575,6 +578,7 @@ rehearsal_songs(
 )
 ```
 
+
 ---
 
 ## 6. Boyce-Codd normal form (BCNF)
@@ -596,6 +600,7 @@ In 3NF, a dependency X -> Y is permitted if Y is a prime attribute, even when X 
 - Determinants: Both `id` and `email` are superkeys.
 - Status: **BCNF**
 
+
 #### 2. `artist_profiles`
 - Candidate keys: `id`, `user_id`
 - Dependencies:
@@ -604,11 +609,13 @@ In 3NF, a dependency X -> Y is permitted if Y is a prime attribute, even when X 
 - Determinants: Both `id` and `user_id` are candidate keys.
 - Status: **BCNF**
 
+
 #### 3. `genres`, `skills`, and `instruments`
 - Candidate keys: `id`, `name`
 - Dependencies: `id -> name` and `name -> id`
 - Determinants: Both are candidate keys.
 - Status: **BCNF**
+
 
 #### 4. `artist_genres` and `band_songs`
 - Candidate key: `{artist_id, genre_id}` / `{band_id, song_id}`
