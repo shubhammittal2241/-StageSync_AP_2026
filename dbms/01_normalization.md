@@ -689,6 +689,7 @@ While the database design conforms to BCNF, real-world production requirements r
      - `no_band_booking_overlap`: Prevents concurrent band overlaps.
      - `no_venue_booking_overlap`: Prevents concurrent venue scheduling conflicts.
      - Automatically restores availability when a booking is cancelled (`status = 'CANCELLED'`).
+       
 2. **Performer XOR validation (`CHECK` constraint)**:
    - A booking must target an artist, a band, or a standalone venue rental, but never an artist and band simultaneously.
    - StageSync enforces this with a database check constraint:
@@ -699,12 +700,15 @@ While the database design conforms to BCNF, real-world production requirements r
        (artist_id IS NULL AND band_id IS NULL AND venue_id IS NOT NULL)
      )
      ```
+     
 3. **Controlled scalar array for venue facilities (`venues.facilities`)**:
    - Simple facility labels ("Green Room", "PA System", "Loading Dock") are stored as a PostgreSQL `VARCHAR[]` array.
    - This avoids an extra junction table and unnecessary SQL joins for basic amenities tags while supporting PostgreSQL array indexes.
+    
 4. **Surrogate keys vs Natural keys**:
    - Natural candidate keys like `users(email)` and `setlist_songs(setlist_id, position)` are protected by `UNIQUE` constraints to maintain BCNF.
    - Tables use UUID surrogate primary keys to ensure that updates to email addresses or titles never require cascading foreign key updates.
+    
 5. **Domain and temporal validation constraints**:
    - Time order checks: `end_time > start_time` on `events`, `bookings`, `equipment_reservations`, and `rehearsals`.
    - Positive numeric checks: `capacity > 0` on `venues`, `duration_seconds > 0` on `songs`, and `total_quantity > 0` on `equipment`.
