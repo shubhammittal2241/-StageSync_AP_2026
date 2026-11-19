@@ -486,9 +486,7 @@ CREATE TABLE bookings (
         WHERE (status IN ('PENDING', 'CONFIRMED') AND venue_id IS NOT NULL)
 );
 
--- ==========================================
 -- 10. SONGS, REPERTOIRE & SETLISTS
--- ==========================================
 
 CREATE TABLE songs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
