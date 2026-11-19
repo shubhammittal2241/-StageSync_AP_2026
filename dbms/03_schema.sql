@@ -312,9 +312,7 @@ CREATE TABLE equipment (
         ON DELETE RESTRICT
 );
 
--- ==========================================
 -- 8. EVENTS & REQUIREMENTS
--- ==========================================
 
 CREATE TABLE events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
