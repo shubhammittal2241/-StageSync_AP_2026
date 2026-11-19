@@ -103,9 +103,7 @@ CREATE TABLE users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==========================================
 -- 2. ARTIST & PROFESSIONAL PROFILES
--- ==========================================
 
 CREATE TABLE artist_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
