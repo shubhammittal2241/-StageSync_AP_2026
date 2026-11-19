@@ -344,3 +344,149 @@ WHERE rehearsal_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'
 RETURNING rehearsal_id, artist_id, confirmed;
 
 
+-- ----------------------------------------------------------------------------
+-- Part 3: Core algorithms and business queries
+-- ----------------------------------------------------------------------------
+
+-- 3.1 Algorithm A: Artist-event matching
+--     Finds available artists matching event city, genre, and minimum experience
+SELECT ap.id,
+       ap.stage_name,
+       ap.professional_type,
+       ap.experience_years,
+       ap.hourly_rate,
+       g.name AS matched_genre,
+       s.name AS matched_skill,
+       ask.proficiency
+FROM artist_profiles ap
+JOIN artist_genres ag ON ag.artist_id = ap.id
+JOIN genres g ON g.id = ag.genre_id
+JOIN artist_skills ask ON ask.artist_id = ap.id
+JOIN skills s ON s.id = ask.skill_id
+WHERE ap.is_available = true
+  AND ap.city = 'Mumbai'
+  AND g.name = 'Rock'
+  AND ap.experience_years >= 5
+ORDER BY ap.experience_years DESC;
+
+-- 3.2 Algorithm B: Booking conflict detection
+--     Checks if an artist has an overlapping booking during the requested time slot
+SELECT id, artist_id, start_time, end_time, status
+FROM bookings
+WHERE artist_id = '22222222-2222-2222-2222-222222222205'
+  AND status IN ('PENDING', 'CONFIRMED')
+  AND start_time < '2026-11-20 23:00:00+05:30'
+  AND end_time > '2026-11-20 18:00:00+05:30';
+
+-- 3.3 Algorithm C: Setlist duration calculation
+--     Compares total song duration against the setlist target duration
+SELECT sl.id,
+       sl.name,
+       sl.target_duration_seconds,
+       SUM(s.duration_seconds) AS current_duration_seconds,
+       sl.target_duration_seconds - SUM(s.duration_seconds) AS remaining_seconds
+FROM setlists sl
+JOIN setlist_songs ss ON ss.setlist_id = sl.id
+JOIN songs s ON s.id = ss.song_id
+WHERE sl.id = 'cccccccc-cccc-cccc-cccc-ccccccccccc1'
+GROUP BY sl.id, sl.name, sl.target_duration_seconds;
+
+-- 3.4 Equipment availability check
+--     Calculates available quantity by subtracting reserved units from total inventory
+SELECT eq.id,
+       eq.name,
+       eq.total_quantity,
+       COALESCE(SUM(er.quantity), 0) AS reserved_units,
+       eq.total_quantity - COALESCE(SUM(er.quantity), 0) AS available_units
+FROM equipment eq
+LEFT JOIN equipment_reservations er
+       ON er.equipment_id = eq.id
+      AND er.status = 'RESERVED'
+GROUP BY eq.id, eq.name, eq.total_quantity;
+
+
+-- ----------------------------------------------------------------------------
+-- Part 4: Reports, analytics, and integrity checks
+-- ----------------------------------------------------------------------------
+
+-- 4.1 View: Event summary with venue and organizer details
+CREATE OR REPLACE VIEW v_event_summary AS
+SELECT e.id AS event_id,
+       e.title,
+       e.event_type,
+       e.status,
+       e.start_time,
+       e.budget,
+       v.name AS venue_name,
+       v.city AS venue_city,
+       u.first_name || ' ' || u.last_name AS organizer_name
+FROM events e
+JOIN users u ON u.id = e.organizer_id
+LEFT JOIN venues v ON v.id = e.venue_id;
+
+SELECT * FROM v_event_summary;
+
+-- 4.2 Aggregation with HAVING: Artists with confirmed booking revenue
+SELECT ap.stage_name,
+       COUNT(b.id) AS total_bookings,
+       SUM(b.fee) AS total_earnings
+FROM artist_profiles ap
+JOIN bookings b ON b.artist_id = ap.id
+WHERE b.status = 'CONFIRMED'
+GROUP BY ap.stage_name
+HAVING COUNT(b.id) > 0;
+
+-- 4.3 Window function (RANK): Rank artists by experience in each professional type
+SELECT stage_name,
+       professional_type,
+       experience_years,
+       RANK() OVER (PARTITION BY professional_type ORDER BY experience_years DESC) AS experience_rank
+FROM artist_profiles;
+
+-- 4.4 Window function (running total): Cumulative event budget per organizer
+SELECT organizer_id,
+       title,
+       start_time,
+       budget,
+       SUM(budget) OVER (PARTITION BY organizer_id ORDER BY start_time) AS cumulative_budget
+FROM events;
+
+-- 4.5 Subquery: Find bookings where fee is higher than the average fee
+SELECT id, event_id, fee
+FROM bookings
+WHERE fee > (SELECT AVG(fee) FROM bookings WHERE fee IS NOT NULL);
+
+-- 4.6 Set operation (INTERSECT): Artists who perform solo AND are in a band
+SELECT artist_id FROM band_members
+INTERSECT
+SELECT artist_id FROM bookings WHERE artist_id IS NOT NULL;
+
+-- 4.7 Set operation (EXCEPT): Artists who have never received a booking
+SELECT id AS artist_id FROM artist_profiles
+EXCEPT
+SELECT artist_id FROM bookings WHERE artist_id IS NOT NULL;
+
+-- 4.8 Array unnest: Count how many venues offer each facility
+SELECT facility, COUNT(*) AS total_venues
+FROM venues, UNNEST(facilities) AS facility
+GROUP BY facility;
+
+-- 4.9 Integrity check: Verify no booking has both artist_id and band_id set
+SELECT id, artist_id, band_id
+FROM bookings
+WHERE artist_id IS NOT NULL AND band_id IS NOT NULL;
+
+-- 4.10 Integrity check: Verify all end times are strictly greater than start times
+SELECT id, start_time, end_time
+FROM events
+WHERE end_time <= start_time;
+
+-- 4.11 Transaction demo: Update fees inside a transaction, then rollback
+BEGIN;
+
+UPDATE bookings
+SET fee = fee + 2000
+WHERE status = 'CONFIRMED'
+RETURNING id, fee;
+
+ROLLBACK;
