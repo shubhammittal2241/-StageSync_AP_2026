@@ -13,9 +13,7 @@ SET search_path TO stagesync;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "btree_gist";
 
--- ==========================================
 -- ENUM TYPES
--- ==========================================
 
 CREATE TYPE user_role AS ENUM (
     'ARTIST',
@@ -91,9 +89,7 @@ CREATE TYPE reservation_status AS ENUM (
     'CANCELLED'
 );
 
--- ==========================================
 -- 1. USERS & AUTHENTICATION
--- ==========================================
 
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
