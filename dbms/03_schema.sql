@@ -186,7 +186,6 @@ CREATE TABLE artist_skills (
         ON DELETE CASCADE
 );
 
--- ==========================================
 -- 5. BANDS & MEMBERSHIPS
 -- ==========================================
 
