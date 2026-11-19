@@ -167,3 +167,180 @@ INSERT INTO rehearsal_songs (rehearsal_id, song_id) VALUES
 COMMIT;
 
 
+-- ----------------------------------------------------------------------------
+-- Part 2: Queries the application runs
+-- ----------------------------------------------------------------------------
+
+-- 2.1 User login: Find user credentials by email
+--     src/services/auth.service.js, login
+-- READ
+SELECT id, email, password_hash, role
+FROM users
+WHERE email = 'maya@soundwave.com';
+
+-- 2.2 User registration: Create new user account
+--     src/services/auth.service.js, register
+-- WRITE
+INSERT INTO users (id, email, password_hash, first_name, last_name, role)
+VALUES (gen_random_uuid(), 'karan@music.com', '$2a$12$sample', 'Karan', 'Shah', 'ARTIST')
+RETURNING id, email, first_name, last_name, role;
+
+-- 2.3 User profile: Fetch user details along with artist profile
+--     src/services/user.service.js, getUserById
+-- READ
+SELECT u.id, u.email, u.first_name, u.last_name, u.role,
+       ap.stage_name, ap.professional_type, ap.hourly_rate, ap.city
+FROM users u
+LEFT JOIN artist_profiles ap ON ap.user_id = u.id
+WHERE u.id = '11111111-1111-1111-1111-111111111103';
+
+-- 2.4 Search artists: Filter by city, minimum experience, and genre
+--     src/services/artist.service.js, searchArtists
+-- READ
+SELECT ap.id, ap.stage_name, ap.professional_type, ap.experience_years, ap.hourly_rate,
+       g.name AS genre_name
+FROM artist_profiles ap
+JOIN artist_genres ag ON ag.artist_id = ap.id
+JOIN genres g ON g.id = ag.genre_id
+WHERE ap.city = 'Mumbai'
+  AND ap.experience_years >= 5;
+
+-- 2.5 Update artist profile: Change hourly rate and availability
+--     src/services/artist.service.js, updateProfile
+-- WRITE
+UPDATE artist_profiles
+SET hourly_rate = 3800.00,
+    is_available = true
+WHERE id = '22222222-2222-2222-2222-222222222201'
+RETURNING id, stage_name, hourly_rate;
+
+-- 2.6 Band members: List all active members of a band with their roles
+--     src/services/band.service.js, getBandDetails
+-- READ
+SELECT b.name AS band_name,
+       bm.role AS member_role,
+       ap.stage_name,
+       i.name AS instrument_name
+FROM bands b
+JOIN band_members bm ON bm.band_id = b.id
+JOIN artist_profiles ap ON ap.id = bm.artist_id
+LEFT JOIN instruments i ON i.id = bm.instrument_id
+WHERE b.id = '33333333-3333-3333-3333-333333333301'
+  AND bm.is_active = true;
+
+-- 2.7 Add member to band: Insert a new band member record
+--     src/services/band.service.js, addMember
+-- WRITE
+INSERT INTO band_members (id, band_id, artist_id, role, instrument_id, joined_date)
+VALUES (gen_random_uuid(), '33333333-3333-3333-3333-333333333301', '22222222-2222-2222-2222-222222222204', 'Guest Bassist', 3, CURRENT_DATE)
+RETURNING id, band_id, artist_id, role;
+
+-- 2.8 Venue search: Find venues in a city with minimum capacity and their operating hours
+--     src/services/venue.service.js, searchVenues
+-- READ
+SELECT v.name, v.city, v.capacity, v.hourly_rate,
+       va.open_time, va.close_time
+FROM venues v
+JOIN venue_availabilities va ON va.venue_id = v.id
+WHERE v.city = 'Mumbai'
+  AND v.capacity >= 500
+  AND va.day_of_week = 5;
+
+-- 2.9 Organizer events: List events created by an organizer
+--     src/services/event.service.js, getEventsByOrganizer
+-- READ
+SELECT e.id, e.title, e.event_type, e.status, e.start_time, e.budget,
+       v.name AS venue_name
+FROM events e
+LEFT JOIN venues v ON v.id = e.venue_id
+WHERE e.organizer_id = '11111111-1111-1111-1111-111111111102';
+
+-- 2.10 Event requirements: View skill requirements for an event
+--      src/services/event.service.js, getEventRequirements
+-- READ
+SELECT er.id, er.min_experience_years, er.professional_type, er.quantity,
+       s.name AS skill_name
+FROM event_requirements er
+LEFT JOIN skills s ON s.id = er.skill_id
+WHERE er.event_id = '88888888-8888-8888-8888-888888888801';
+
+-- 2.11 Create booking: Insert a new booking request
+--      src/services/booking.service.js, createBooking
+-- WRITE
+INSERT INTO bookings (id, event_id, artist_id, band_id, venue_id, start_time, end_time, status, fee, created_by)
+VALUES (
+    gen_random_uuid(),
+    '88888888-8888-8888-8888-888888888802',
+    '22222222-2222-2222-2222-222222222201',
+    NULL,
+    NULL,
+    '2026-11-21 21:00:00+05:30',
+    '2026-11-21 22:00:00+05:30',
+    'PENDING',
+    10000.00,
+    '11111111-1111-1111-1111-111111111102'
+)
+RETURNING id, event_id, status, fee;
+
+-- 2.12 Update booking status: Confirm a pending booking
+--      src/services/booking.service.js, updateBookingStatus
+-- WRITE
+UPDATE bookings
+SET status = 'CONFIRMED'
+WHERE id = '99999999-9999-9999-9999-999999999903'
+RETURNING id, status, fee;
+
+-- 2.13 Cancel booking: Change status to cancelled
+--      src/services/booking.service.js, cancelBooking
+-- WRITE
+UPDATE bookings
+SET status = 'CANCELLED'
+WHERE id = '99999999-9999-9999-9999-999999999903'
+RETURNING id, status;
+
+-- 2.14 Equipment reservations: View equipment reserved for an event
+--      src/services/equipment.service.js, getEventEquipment
+-- READ
+SELECT eq.name AS equipment_name, eq.category, er.quantity, er.status
+FROM equipment_reservations er
+JOIN equipment eq ON eq.id = er.equipment_id
+WHERE er.event_id = '88888888-8888-8888-8888-888888888801';
+
+-- 2.15 Setlist tracks: Get songs in a setlist in playback order
+--      src/services/setlist.service.js, getSetlist
+-- READ
+SELECT ss.position, s.title, s.duration_seconds
+FROM setlist_songs ss
+JOIN songs s ON s.id = ss.song_id
+WHERE ss.setlist_id = 'cccccccc-cccc-cccc-cccc-ccccccccccc1'
+ORDER BY ss.position ASC;
+
+-- 2.16 Add track to setlist: Insert song with sequential position
+--      src/services/setlist.service.js, addSongToSetlist
+-- WRITE
+INSERT INTO setlist_songs (id, setlist_id, song_id, position)
+VALUES (gen_random_uuid(), 'cccccccc-cccc-cccc-cccc-ccccccccccc1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3', 3)
+RETURNING id, setlist_id, song_id, position;
+
+-- 2.17 Rehearsal details: Get rehearsal info, band, and participants
+--      src/services/rehearsal.service.js, getRehearsalDetails
+-- READ
+SELECT r.start_time, r.end_time, b.name AS band_name, v.name AS venue_name,
+       ap.stage_name, rp.confirmed
+FROM rehearsals r
+JOIN bands b ON b.id = r.band_id
+LEFT JOIN venues v ON v.id = r.venue_id
+JOIN rehearsal_participants rp ON rp.rehearsal_id = r.id
+JOIN artist_profiles ap ON ap.id = rp.artist_id
+WHERE r.id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1';
+
+-- 2.18 Confirm rehearsal attendance: Mark participant as confirmed
+--      src/services/rehearsal.service.js, confirmAttendance
+-- WRITE
+UPDATE rehearsal_participants
+SET confirmed = true
+WHERE rehearsal_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'
+  AND artist_id = '22222222-2222-2222-2222-222222222201'
+RETURNING rehearsal_id, artist_id, confirmed;
+
+
