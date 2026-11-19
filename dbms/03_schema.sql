@@ -187,7 +187,6 @@ CREATE TABLE artist_skills (
 );
 
 -- 5. BANDS & MEMBERSHIPS
--- ==========================================
 
 CREATE TABLE bands (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
