@@ -1,0 +1,36 @@
+SET
+                                                                                    QUERY PLAN                                                                                     
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=0.58..32.84 rows=1 width=1072) (actual time=0.044..0.060 rows=4 loops=1)
+   Output: b.name, bm.role, ap.stage_name, i.name
+   Inner Unique: true
+   Buffers: shared hit=18
+   ->  Nested Loop  (cost=0.43..24.63 rows=1 width=858) (actual time=0.031..0.040 rows=4 loops=1)
+         Output: b.name, bm.role, bm.instrument_id, ap.stage_name
+         Inner Unique: true
+         Buffers: shared hit=12
+         ->  Nested Loop  (cost=0.29..16.34 rows=1 width=556) (actual time=0.019..0.022 rows=4 loops=1)
+               Output: b.name, bm.role, bm.artist_id, bm.instrument_id
+               Buffers: shared hit=4
+               ->  Index Scan using bands_pkey on stagesync.bands b  (cost=0.14..8.16 rows=1 width=334) (actual time=0.010..0.011 rows=1 loops=1)
+                     Output: b.id, b.name, b.formed_date, b.bio, b.genre_id, b.created_by, b.is_active, b.created_at, b.updated_at
+                     Index Cond: (b.id = '33333333-3333-3333-3333-333333333301'::uuid)
+                     Buffers: shared hit=2
+               ->  Index Scan using idx_band_members_band_active on stagesync.band_members bm  (cost=0.14..8.16 rows=1 width=254) (actual time=0.005..0.007 rows=4 loops=1)
+                     Output: bm.id, bm.band_id, bm.artist_id, bm.role, bm.instrument_id, bm.joined_date, bm.left_date, bm.is_active, bm.created_at, bm.updated_at
+                     Index Cond: ((bm.band_id = '33333333-3333-3333-3333-333333333301'::uuid) AND (bm.is_active = true))
+                     Buffers: shared hit=2
+         ->  Index Scan using artist_profiles_pkey on stagesync.artist_profiles ap  (cost=0.14..8.16 rows=1 width=334) (actual time=0.003..0.003 rows=1 loops=4)
+               Output: ap.id, ap.user_id, ap.stage_name, ap.bio, ap.professional_type, ap.experience_years, ap.hourly_rate, ap.city, ap.is_available, ap.created_at, ap.updated_at
+               Index Cond: (ap.id = bm.artist_id)
+               Buffers: shared hit=8
+   ->  Index Scan using instruments_pkey on stagesync.instruments i  (cost=0.15..8.17 rows=1 width=222) (actual time=0.004..0.004 rows=1 loops=4)
+         Output: i.id, i.name
+         Index Cond: (i.id = bm.instrument_id)
+         Buffers: shared hit=6
+ Planning:
+   Buffers: shared hit=524
+ Planning Time: 2.954 ms
+ Execution Time: 0.130 ms
+(31 rows)
+

@@ -1,0 +1,29 @@
+SET
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=31.46..33.21 rows=140 width=454) (actual time=0.070..0.078 rows=3 loops=1)
+   Output: eq.id, eq.name, eq.total_quantity, COALESCE(sum(er.quantity), '0'::bigint), (eq.total_quantity - COALESCE(sum(er.quantity), '0'::bigint))
+   Group Key: eq.id
+   Batches: 1  Memory Usage: 40kB
+   Buffers: shared hit=2
+   ->  Hash Left Join  (cost=18.80..30.76 rows=140 width=442) (actual time=0.054..0.058 rows=3 loops=1)
+         Output: eq.id, eq.name, eq.total_quantity, er.quantity
+         Hash Cond: (eq.id = er.equipment_id)
+         Buffers: shared hit=2
+         ->  Seq Scan on stagesync.equipment eq  (cost=0.00..11.40 rows=140 width=438) (actual time=0.013..0.014 rows=3 loops=1)
+               Output: eq.id, eq.name, eq.category, eq.total_quantity, eq.condition, eq.owner_id, eq.description, eq.daily_rate, eq.created_at, eq.updated_at
+               Buffers: shared hit=1
+         ->  Hash  (cost=18.75..18.75 rows=4 width=20) (actual time=0.026..0.026 rows=1 loops=1)
+               Output: er.quantity, er.equipment_id
+               Buckets: 1024  Batches: 1  Memory Usage: 9kB
+               Buffers: shared hit=1
+               ->  Seq Scan on stagesync.equipment_reservations er  (cost=0.00..18.75 rows=4 width=20) (actual time=0.014..0.015 rows=1 loops=1)
+                     Output: er.quantity, er.equipment_id
+                     Filter: (er.status = 'RESERVED'::reservation_status)
+                     Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=224
+ Planning Time: 2.323 ms
+ Execution Time: 0.162 ms
+(24 rows)
+
