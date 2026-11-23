@@ -1,0 +1,33 @@
+SET
+                                                                                    QUERY PLAN                                                                                     
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=4.51..25.35 rows=14 width=476) (actual time=0.075..0.109 rows=5 loops=1)
+   Output: ap.id, ap.stage_name, ap.professional_type, ap.experience_years, ap.hourly_rate, g.name
+   Inner Unique: true
+   Buffers: shared hit=19
+   ->  Nested Loop  (cost=4.36..22.61 rows=14 width=362) (actual time=0.055..0.073 rows=5 loops=1)
+         Output: ap.id, ap.stage_name, ap.professional_type, ap.experience_years, ap.hourly_rate, ag.genre_id
+         Buffers: shared hit=9
+         ->  Index Scan using idx_artist_profiles_city on stagesync.artist_profiles ap  (cost=0.14..8.16 rows=1 width=358) (actual time=0.026..0.029 rows=4 loops=1)
+               Output: ap.id, ap.user_id, ap.stage_name, ap.bio, ap.professional_type, ap.experience_years, ap.hourly_rate, ap.city, ap.is_available, ap.created_at, ap.updated_at
+               Index Cond: ((ap.city)::text = 'Mumbai'::text)
+               Filter: (ap.experience_years >= 5)
+               Buffers: shared hit=2
+         ->  Bitmap Heap Scan on stagesync.artist_genres ag  (cost=4.21..14.37 rows=8 width=20) (actual time=0.007..0.007 rows=1 loops=4)
+               Output: ag.artist_id, ag.genre_id
+               Recheck Cond: (ap.id = ag.artist_id)
+               Heap Blocks: exact=3
+               Buffers: shared hit=7
+               ->  Bitmap Index Scan on artist_genres_pkey  (cost=0.00..4.21 rows=8 width=0) (actual time=0.004..0.004 rows=1 loops=4)
+                     Index Cond: (ag.artist_id = ap.id)
+                     Buffers: shared hit=4
+   ->  Index Scan using genres_pkey on stagesync.genres g  (cost=0.15..0.20 rows=1 width=122) (actual time=0.005..0.005 rows=1 loops=5)
+         Output: g.id, g.name
+         Index Cond: (g.id = ag.genre_id)
+         Buffers: shared hit=10
+ Planning:
+   Buffers: shared hit=394
+ Planning Time: 2.997 ms
+ Execution Time: 0.217 ms
+(28 rows)
+

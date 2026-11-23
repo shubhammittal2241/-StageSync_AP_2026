@@ -1,0 +1,39 @@
+SET
+                                                                      QUERY PLAN                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=12.87..31.97 rows=1 width=454) (actual time=0.312..0.318 rows=1 loops=1)
+   Output: sl.id, sl.name, sl.target_duration_seconds, sum(s.duration_seconds), (sl.target_duration_seconds - sum(s.duration_seconds))
+   Buffers: shared hit=5
+   ->  Nested Loop  (cost=12.87..31.95 rows=5 width=442) (actual time=0.060..0.067 rows=3 loops=1)
+         Output: sl.id, sl.name, sl.target_duration_seconds, s.duration_seconds
+         Buffers: shared hit=5
+         ->  Index Scan using setlists_pkey on stagesync.setlists sl  (cost=0.14..8.16 rows=1 width=438) (actual time=0.007..0.008 rows=1 loops=1)
+               Output: sl.id, sl.name, sl.event_id, sl.booking_id, sl.target_duration_seconds, sl.created_by, sl.created_at, sl.updated_at
+               Index Cond: (sl.id = 'cccccccc-cccc-cccc-cccc-ccccccccccc1'::uuid)
+               Buffers: shared hit=2
+         ->  Hash Join  (cost=12.72..23.73 rows=5 width=20) (actual time=0.051..0.056 rows=3 loops=1)
+               Output: ss.setlist_id, s.duration_seconds
+               Inner Unique: true
+               Hash Cond: (s.id = ss.song_id)
+               Buffers: shared hit=3
+               ->  Seq Scan on stagesync.songs s  (cost=0.00..10.80 rows=80 width=20) (actual time=0.010..0.012 rows=3 loops=1)
+                     Output: s.id, s.title, s.artist_name, s.duration_seconds, s.genre_id, s.tempo_bpm, s.created_by, s.created_at, s.updated_at
+                     Buffers: shared hit=1
+               ->  Hash  (cost=12.66..12.66 rows=5 width=32) (actual time=0.026..0.027 rows=3 loops=1)
+                     Output: ss.setlist_id, ss.song_id
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=2
+                     ->  Bitmap Heap Scan on stagesync.setlist_songs ss  (cost=4.19..12.66 rows=5 width=32) (actual time=0.016..0.018 rows=3 loops=1)
+                           Output: ss.setlist_id, ss.song_id
+                           Recheck Cond: (ss.setlist_id = 'cccccccc-cccc-cccc-cccc-ccccccccccc1'::uuid)
+                           Heap Blocks: exact=1
+                           Buffers: shared hit=2
+                           ->  Bitmap Index Scan on uq_setlist_song_item  (cost=0.00..4.19 rows=5 width=0) (actual time=0.004..0.004 rows=3 loops=1)
+                                 Index Cond: (ss.setlist_id = 'cccccccc-cccc-cccc-cccc-ccccccccccc1'::uuid)
+                                 Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=251
+ Planning Time: 3.607 ms
+ Execution Time: 0.715 ms
+(34 rows)
+
