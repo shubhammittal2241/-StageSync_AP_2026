@@ -350,6 +350,7 @@ RETURNING rehearsal_id, artist_id, confirmed;
 
 -- 3.1 Algorithm A: Artist-event matching
 --     Finds available artists matching event city, genre, and minimum experience
+-- READ
 SELECT ap.id,
        ap.stage_name,
        ap.professional_type,
@@ -371,6 +372,7 @@ ORDER BY ap.experience_years DESC;
 
 -- 3.2 Algorithm B: Booking conflict detection
 --     Checks if an artist has an overlapping booking during the requested time slot
+-- READ
 SELECT id, artist_id, start_time, end_time, status
 FROM bookings
 WHERE artist_id = '22222222-2222-2222-2222-222222222205'
@@ -380,6 +382,7 @@ WHERE artist_id = '22222222-2222-2222-2222-222222222205'
 
 -- 3.3 Algorithm C: Setlist duration calculation
 --     Compares total song duration against the setlist target duration
+-- READ
 SELECT sl.id,
        sl.name,
        sl.target_duration_seconds,
@@ -393,6 +396,7 @@ GROUP BY sl.id, sl.name, sl.target_duration_seconds;
 
 -- 3.4 Equipment availability check
 --     Calculates available quantity by subtracting reserved units from total inventory
+-- READ
 SELECT eq.id,
        eq.name,
        eq.total_quantity,
@@ -410,6 +414,7 @@ GROUP BY eq.id, eq.name, eq.total_quantity;
 -- ----------------------------------------------------------------------------
 
 -- 4.1 View: Event summary with venue and organizer details
+-- WRITE
 CREATE OR REPLACE VIEW v_event_summary AS
 SELECT e.id AS event_id,
        e.title,
@@ -424,9 +429,11 @@ FROM events e
 JOIN users u ON u.id = e.organizer_id
 LEFT JOIN venues v ON v.id = e.venue_id;
 
+-- READ
 SELECT * FROM v_event_summary;
 
 -- 4.2 Aggregation with HAVING: Artists with confirmed booking revenue
+-- READ
 SELECT ap.stage_name,
        COUNT(b.id) AS total_bookings,
        SUM(b.fee) AS total_earnings
@@ -437,6 +444,7 @@ GROUP BY ap.stage_name
 HAVING COUNT(b.id) > 0;
 
 -- 4.3 Window function (RANK): Rank artists by experience in each professional type
+-- READ
 SELECT stage_name,
        professional_type,
        experience_years,
@@ -444,6 +452,7 @@ SELECT stage_name,
 FROM artist_profiles;
 
 -- 4.4 Window function (running total): Cumulative event budget per organizer
+-- READ
 SELECT organizer_id,
        title,
        start_time,
@@ -452,36 +461,43 @@ SELECT organizer_id,
 FROM events;
 
 -- 4.5 Subquery: Find bookings where fee is higher than the average fee
+-- READ
 SELECT id, event_id, fee
 FROM bookings
 WHERE fee > (SELECT AVG(fee) FROM bookings WHERE fee IS NOT NULL);
 
 -- 4.6 Set operation (INTERSECT): Artists who perform solo AND are in a band
+-- READ
 SELECT artist_id FROM band_members
 INTERSECT
 SELECT artist_id FROM bookings WHERE artist_id IS NOT NULL;
 
 -- 4.7 Set operation (EXCEPT): Artists who have never received a booking
+-- READ
 SELECT id AS artist_id FROM artist_profiles
 EXCEPT
 SELECT artist_id FROM bookings WHERE artist_id IS NOT NULL;
 
 -- 4.8 Array unnest: Count how many venues offer each facility
+-- READ
 SELECT facility, COUNT(*) AS total_venues
 FROM venues, UNNEST(facilities) AS facility
 GROUP BY facility;
 
 -- 4.9 Integrity check: Verify no booking has both artist_id and band_id set
+-- READ
 SELECT id, artist_id, band_id
 FROM bookings
 WHERE artist_id IS NOT NULL AND band_id IS NOT NULL;
 
 -- 4.10 Integrity check: Verify all end times are strictly greater than start times
+-- READ
 SELECT id, start_time, end_time
 FROM events
 WHERE end_time <= start_time;
 
 -- 4.11 Transaction demo: Update fees inside a transaction, then rollback
+-- WRITE
 BEGIN;
 
 UPDATE bookings
